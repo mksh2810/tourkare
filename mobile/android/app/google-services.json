@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "279360519840",
+    "project_id": "tourkare-7cc49",
+    "storage_bucket": "tourkare-7cc49.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279360519840:android:73d1eac403962a65f953c5",
+        "android_client_info": {
+          "package_name": "com.example.tourkare"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "279360519840-fb37ungbm0ik9uk089im1ne6h3sdtpc7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.tourkare",
+            "certificate_hash": "9af741407a3fb359566d2f4049b6ed8d14c5569e"
+          }
+        },
+        {
+          "client_id": "279360519840-gj2fv0gnifrjomktd6t1uab5go72b8gt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNlfbU-NJSzNqnCmB0Okg2ahjeA0a1GV8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "279360519840-gj2fv0gnifrjomktd6t1uab5go72b8gt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
