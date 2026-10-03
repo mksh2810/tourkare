@@ -4,16 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8000';
-
+  static const String baseUrl = 'https://tourkare-backend.onrender.com';
 
   static Future<String?> getHeroImage() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/hero-image'),
-      );
+      final response = await http.get(Uri.parse('$baseUrl/hero-image'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -21,20 +17,15 @@ class ApiService {
         return data['image_url'];
       }
 
-      debugPrint(
-        'Failed to fetch hero image: ${response.statusCode}',
-      );
+      debugPrint('Failed to fetch hero image: ${response.statusCode}');
 
       return null;
     } catch (e) {
-      debugPrint(
-        'Error fetching hero image: $e',
-      );
+      debugPrint('Error fetching hero image: $e');
 
       return null;
     }
   }
-
 
   static Future<Map<String, dynamic>> createTrip({
     required String destination,
@@ -52,9 +43,7 @@ class ApiService {
     final idToken = await user.getIdToken();
 
     if (idToken == null) {
-      throw Exception(
-        'Could not get Firebase ID token',
-      );
+      throw Exception('Could not get Firebase ID token');
     }
 
     final response = await http.post(
@@ -83,11 +72,8 @@ class ApiService {
       '${response.statusCode} ${response.body}',
     );
 
-    throw Exception(
-      'Failed to generate itinerary: ${response.body}',
-    );
+    throw Exception('Failed to generate itinerary: ${response.body}');
   }
-
 
   static Future<Map<String, dynamic>> regenerateDay({
     required String destination,
@@ -107,9 +93,7 @@ class ApiService {
     final idToken = await user.getIdToken();
 
     if (idToken == null) {
-      throw Exception(
-        'Could not get Firebase ID token',
-      );
+      throw Exception('Could not get Firebase ID token');
     }
 
     final response = await http.post(
@@ -140,11 +124,8 @@ class ApiService {
       '${response.statusCode} ${response.body}',
     );
 
-    throw Exception(
-      'Failed to regenerate day: ${response.body}',
-    );
+    throw Exception('Failed to regenerate day: ${response.body}');
   }
-
 
   static Future<Map<String, dynamic>> regenerateItem({
     required String destination,
@@ -166,9 +147,7 @@ class ApiService {
     final idToken = await user.getIdToken();
 
     if (idToken == null) {
-      throw Exception(
-        'Could not get Firebase ID token',
-      );
+      throw Exception('Could not get Firebase ID token');
     }
 
     final response = await http.post(
@@ -201,8 +180,6 @@ class ApiService {
       '${response.statusCode} ${response.body}',
     );
 
-    throw Exception(
-      'Failed to regenerate item: ${response.body}',
-    );
+    throw Exception('Failed to regenerate item: ${response.body}');
   }
 }
