@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tourkare/services/auth_service.dart';
 import 'package:tourkare/screens/auth/login.dart';
+import 'package:tourkare/screens/homepage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -78,16 +79,19 @@ class _SignupScreenState extends State<SignupScreen> {
 
       if (!mounted) return;
 
-      if (!result.success) {
+      if (result.success) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const Homepage()),
+          (route) => false,
+        );
+        return;
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result.message ?? 'Signup failed. Please try again.'),
           ),
         );
       }
-
-      // On success, Firebase is already signed in.
-      // AuthGate will automatically display Homepage.
     } catch (e) {
       if (!mounted) return;
 
@@ -112,13 +116,16 @@ class _SignupScreenState extends State<SignupScreen> {
 
       if (!mounted) return;
 
-      if (!result.success) {
+      if (result.success) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const Homepage()),
+          (route) => false,
+        );
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result.message ?? 'Google signup failed.')),
         );
       }
-
-      // AuthGate will handle navigation after success.
     } catch (e) {
       if (!mounted) return;
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:tourkare/services/auth_service.dart';
 import 'package:tourkare/screens/auth/signup.dart';
+import 'package:tourkare/screens/auth/forgot_password.dart';
+import 'package:tourkare/screens/homepage.dart';
 
 class LoginScreen extends StatefulWidget {
   // CHANGE 1: Fixed invalid constructor
@@ -52,8 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (result.success) {
-        // AuthGate will navigate to Homepage automatically.
-        // Do not push Homepage from here.
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const Homepage()),
+          (route) => false,
+        );
         return;
       }
 
@@ -165,11 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 child: TextButton(
                   // CHANGE 7: Disable while loading
-                  onPressed: isLoading
-                      ? null
-                      : () {
-                          // Forgot password
-                        },
+                  onPressed: isLoading ? null : _forgotPassword,
                   child: const Text('Forgot Password'),
                 ),
               ),
@@ -327,6 +327,15 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Future<void> _forgotPassword() async {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            ForgotPasswordScreen(initialEmail: _emailController.text.trim()),
+      ),
+    );
+  }
+
   // Google Login
   Future<void> _googleLogin() async {
     setState(() {
@@ -338,13 +347,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      if (!result.success) {
+      if (result.success) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const Homepage()),
+          (route) => false,
+        );
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result.message ?? 'Google login failed.')),
         );
       }
-
-      // AuthGate handles successful navigation.
     } catch (e) {
       if (!mounted) return;
 

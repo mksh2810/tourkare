@@ -1,6 +1,7 @@
 // ignore_for_file: control_flow_in_finally
 
 import 'package:flutter/material.dart';
+import 'package:tourkare/screens/ai_generating_screen.dart';
 import 'package:tourkare/screens/place_detail.dart';
 import 'package:tourkare/services/api_service.dart';
 import 'package:tourkare/services/database_service.dart';
@@ -416,7 +417,7 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
             const SizedBox(height: 14),
 
             SizedBox(
-              height: 48,
+              height: 72,
 
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
@@ -455,15 +456,36 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
                         ),
                       ),
 
-                      child: Text(
-                        'Day $day',
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black87,
-
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.w500,
-                        ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Day $day',
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          SizedBox(
+                            width: 110,
+                            child: Text(
+                              (itineraryData[day]?['title'] ?? 'Explore')
+                                  .toString(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white70
+                                    : Colors.grey.shade600,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -626,9 +648,9 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
               height: 55,
 
               child: ElevatedButton.icon(
-                onPressed: () {
-                  // Backend regeneration will be added later.
-                },
+                onPressed: isRegeneratingDay || regeneratingItemKey != null
+                    ? null
+                    : _regenerateEntireTrip,
 
                 icon: const Icon(Icons.auto_awesome),
 
@@ -730,7 +752,9 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
               rating: rating,
               description: description,
               destination: widget.destination,
-              selectedDay: selectedDay, itemType: DetailItemType.place, location: location,
+              selectedDay: selectedDay,
+              itemType: DetailItemType.place,
+              location: location,
             ),
           ),
         );
@@ -847,8 +871,12 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
                                     ),
 
                                     PopupMenuButton<String>(
-                                      enabled: regeneratingItemKey == null && !isRegeneratingDay,
-                                      icon: regeneratingItemKey == 'place_$itemIndex'
+                                      enabled:
+                                          regeneratingItemKey == null &&
+                                          !isRegeneratingDay,
+                                      icon:
+                                          regeneratingItemKey ==
+                                              'place_$itemIndex'
                                           ? const SizedBox(
                                               width: 20,
                                               height: 20,
@@ -1057,17 +1085,20 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
                                 ),
 
                                 PopupMenuButton<String>(
-                                      enabled: regeneratingItemKey == null && !isRegeneratingDay,
-                                      icon: regeneratingItemKey == 'place_$itemIndex'
-                                          ? const SizedBox(
-                                              width: 20,
-                                              height: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.deepPurple,
-                                              ),
-                                            )
-                                          : null,
+                                  enabled:
+                                      regeneratingItemKey == null &&
+                                      !isRegeneratingDay,
+                                  icon:
+                                      regeneratingItemKey == 'place_$itemIndex'
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.deepPurple,
+                                          ),
+                                        )
+                                      : null,
                                   onSelected: (value) {
                                     if (value == 'regenerate') {
                                       _regenerateItem(
@@ -1194,56 +1225,290 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
     required String location,
   }) {
     return GestureDetector(
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PlaceDetailScreen(
-          name: restaurant,
-          image: image,
-          time: time,
-          price: price,
-          rating: rating,
-          description: dishes,
-          destination: widget.destination,
-          selectedDay: selectedDay,
-          itemType: DetailItemType.food,
-          location: location,
-          meal: meal,
-        ),
-      ),
-    );
-  },
-  child: LayoutBuilder(
-    builder: (context, constraints) {
-        final bool isWide = constraints.maxWidth >= 650;
-
-        return Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 16),
-
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade200),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PlaceDetailScreen(
+              name: restaurant,
+              image: image,
+              time: time,
+              price: price,
+              rating: rating,
+              description: dishes,
+              destination: widget.destination,
+              selectedDay: selectedDay,
+              itemType: DetailItemType.food,
+              location: location,
+              meal: meal,
+            ),
           ),
+        );
+      },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isWide = constraints.maxWidth >= 650;
 
-          clipBehavior: Clip.antiAlias,
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 16),
 
-          child: isWide
-              // =====================================================
-              // WIDE
-              // =====================================================
-              ? SizedBox(
-                  height: 220,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
 
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+            clipBehavior: Clip.antiAlias,
+
+            child: isWide
+                // =====================================================
+                // WIDE
+                // =====================================================
+                ? SizedBox(
+                    height: 220,
+
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+
+                      children: [
+                        // Image
+                        Expanded(
+                          flex: 4,
+
+                          child: Image.network(
+                            image,
+                            fit: BoxFit.cover,
+
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey.shade200,
+
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.restaurant_outlined,
+                                    size: 45,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                        // Details
+                        Expanded(
+                          flex: 6,
+
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        restaurant,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+
+                                    PopupMenuButton<String>(
+                                      enabled:
+                                          regeneratingItemKey == null &&
+                                          !isRegeneratingDay,
+                                      icon:
+                                          regeneratingItemKey ==
+                                              'food_$itemIndex'
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.deepPurple,
+                                              ),
+                                            )
+                                          : null,
+                                      onSelected: (value) {
+                                        if (value == 'regenerate') {
+                                          _regenerateItem(
+                                            itemType: "food",
+                                            itemIndex: itemIndex,
+                                          );
+                                        }
+
+                                        if (value == 'delete') {
+                                          _deleteItem(
+                                            itemType: "food",
+                                            itemIndex: itemIndex,
+                                          );
+                                        }
+                                      },
+
+                                      itemBuilder: (context) => const [
+                                        PopupMenuItem(
+                                          value: 'regenerate',
+
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.auto_awesome_outlined),
+                                              SizedBox(width: 10),
+                                              Text('Regenerate'),
+                                            ],
+                                          ),
+                                        ),
+
+                                        PopupMenuItem(
+                                          value: 'delete',
+
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete_outline_sharp),
+                                              SizedBox(width: 10),
+                                              Text('Remove'),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 5),
+
+                                // Meal
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 9,
+                                    vertical: 5,
+                                  ),
+
+                                  decoration: BoxDecoration(
+                                    color: Colors.deepPurple.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+
+                                  child: Text(
+                                    meal,
+                                    style: const TextStyle(
+                                      color: Colors.deepPurple,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 10),
+
+                                // Rating
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.star_rounded,
+                                      color: Colors.amber,
+                                      size: 19,
+                                    ),
+
+                                    const SizedBox(width: 4),
+
+                                    Text(
+                                      rating.toString(),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 9),
+
+                                // Time
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.access_time_outlined,
+                                      size: 17,
+                                      color: Colors.deepPurple,
+                                    ),
+
+                                    const SizedBox(width: 6),
+
+                                    Text(
+                                      time,
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 9),
+
+                                // Dishes
+                                Text(
+                                  dishes,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+
+                                const Spacer(),
+
+                                // Price
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.currency_rupee,
+                                      size: 18,
+                                      color: Colors.deepPurple,
+                                    ),
+
+                                    Text(
+                                      '$price',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+
+                                    const Text(
+                                      ' / person',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                // =====================================================
+                // MOBILE
+                // =====================================================
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
 
                     children: [
                       // Image
-                      Expanded(
-                        flex: 4,
+                      SizedBox(
+                        height: 180,
+                        width: double.infinity,
 
                         child: Image.network(
                           image,
@@ -1265,424 +1530,200 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
                         ),
                       ),
 
-                      // Details
-                      Expanded(
-                        flex: 6,
+                      Padding(
+                        padding: const EdgeInsets.all(16),
 
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
 
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      restaurant,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    restaurant,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
                                     ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
+                                ),
 
-                                  PopupMenuButton<String>(
-                                      enabled: regeneratingItemKey == null && !isRegeneratingDay,
-                                      icon: regeneratingItemKey == 'food_$itemIndex'
-                                          ? const SizedBox(
-                                              width: 20,
-                                              height: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.deepPurple,
-                                              ),
-                                            )
-                                          : null,
-                                    onSelected: (value) {
-                                      if (value == 'regenerate') {
-                                        _regenerateItem(
-                                          itemType: "food",
-                                          itemIndex: itemIndex,
-                                        );
-                                      }
+                                PopupMenuButton<String>(
+                                  enabled:
+                                      regeneratingItemKey == null &&
+                                      !isRegeneratingDay,
+                                  icon: regeneratingItemKey == 'food_$itemIndex'
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.deepPurple,
+                                          ),
+                                        )
+                                      : null,
+                                  onSelected: (value) {
+                                    if (value == 'regenerate') {
+                                      _regenerateItem(
+                                        itemType: "food",
+                                        itemIndex: itemIndex,
+                                      );
+                                    }
 
-                                      if (value == 'delete') {
-                                        _deleteItem(
-                                          itemType: "food",
-                                          itemIndex: itemIndex,
-                                        );
-                                      }
-                                    },
+                                    if (value == 'delete') {
+                                      _deleteItem(
+                                        itemType: "food",
+                                        itemIndex: itemIndex,
+                                      );
+                                    }
+                                  },
 
-                                    itemBuilder: (context) => const [
-                                      PopupMenuItem(
-                                        value: 'regenerate',
+                                  itemBuilder: (context) => const [
+                                    PopupMenuItem(
+                                      value: 'regenerate',
 
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.auto_awesome_outlined),
-                                            SizedBox(width: 10),
-                                            Text('Regenerate'),
-                                          ],
-                                        ),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.auto_awesome_outlined),
+                                          SizedBox(width: 10),
+                                          Text('Regenerate'),
+                                        ],
                                       ),
+                                    ),
 
-                                      PopupMenuItem(
-                                        value: 'delete',
+                                    PopupMenuItem(
+                                      value: 'delete',
 
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.delete_outline_sharp),
-                                            SizedBox(width: 10),
-                                            Text('Remove'),
-                                          ],
-                                        ),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete_outline_sharp),
+                                          SizedBox(width: 10),
+                                          Text('Remove'),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 6),
+
+                            // Meal
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 5,
                               ),
 
-                              const SizedBox(height: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.deepPurple.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
 
-                              // Meal
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 9,
-                                  vertical: 5,
+                              child: Text(
+                                meal,
+                                style: const TextStyle(
+                                  color: Colors.deepPurple,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            // Rating
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.star_rounded,
+                                  color: Colors.amber,
+                                  size: 19,
                                 ),
 
-                                decoration: BoxDecoration(
-                                  color: Colors.deepPurple.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                                const SizedBox(width: 4),
 
-                                child: Text(
-                                  meal,
+                                Text(
+                                  rating.toString(),
                                   style: const TextStyle(
-                                    color: Colors.deepPurple,
-                                    fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                              ),
+                              ],
+                            ),
 
-                              const SizedBox(height: 10),
+                            const SizedBox(height: 10),
 
-                              // Rating
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.star_rounded,
-                                    color: Colors.amber,
-                                    size: 19,
-                                  ),
-
-                                  const SizedBox(width: 4),
-
-                                  Text(
-                                    rating.toString(),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 9),
-
-                              // Time
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.access_time_outlined,
-                                    size: 17,
-                                    color: Colors.deepPurple,
-                                  ),
-
-                                  const SizedBox(width: 6),
-
-                                  Text(
-                                    time,
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 9),
-
-                              // Dishes
-                              Text(
-                                dishes,
-                                style: TextStyle(
-                                  color: Colors.grey.shade700,
-                                  fontSize: 12,
+                            // Time
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.access_time_outlined,
+                                  size: 17,
+                                  color: Colors.deepPurple,
                                 ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+
+                                const SizedBox(width: 6),
+
+                                Text(
+                                  time,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            // Dishes
+                            Text(
+                              dishes,
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 12,
                               ),
+                            ),
 
-                              const Spacer(),
+                            const SizedBox(height: 12),
 
-                              // Price
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.currency_rupee,
-                                    size: 18,
-                                    color: Colors.deepPurple,
+                            // Price
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.currency_rupee,
+                                  size: 18,
+                                  color: Colors.deepPurple,
+                                ),
+
+                                Text(
+                                  '$price',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
                                   ),
+                                ),
 
-                                  Text(
-                                    '$price',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                const Text(
+                                  ' / person',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 11,
                                   ),
-
-                                  const Text(
-                                    ' / person',
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                )
-              // =====================================================
-              // MOBILE
-              // =====================================================
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-
-                  children: [
-                    // Image
-                    SizedBox(
-                      height: 180,
-                      width: double.infinity,
-
-                      child: Image.network(
-                        image,
-                        fit: BoxFit.cover,
-
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: Colors.grey.shade200,
-
-                            child: const Center(
-                              child: Icon(
-                                Icons.restaurant_outlined,
-                                size: 45,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  restaurant,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-
-                              PopupMenuButton<String>(
-                                      enabled: regeneratingItemKey == null && !isRegeneratingDay,
-                                      icon: regeneratingItemKey == 'food_$itemIndex'
-                                          ? const SizedBox(
-                                              width: 20,
-                                              height: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.deepPurple,
-                                              ),
-                                            )
-                                          : null,
-                                onSelected: (value) {
-                                  if (value == 'regenerate') {
-                                    _regenerateItem(
-                                      itemType: "food",
-                                      itemIndex: itemIndex,
-                                    );
-                                  }
-
-                                  if (value == 'delete') {
-                                    _deleteItem(
-                                      itemType: "food",
-                                      itemIndex: itemIndex,
-                                    );
-                                  }
-                                },
-
-                                itemBuilder: (context) => const [
-                                  PopupMenuItem(
-                                    value: 'regenerate',
-
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.auto_awesome_outlined),
-                                        SizedBox(width: 10),
-                                        Text('Regenerate'),
-                                      ],
-                                    ),
-                                  ),
-
-                                  PopupMenuItem(
-                                    value: 'delete',
-
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.delete_outline_sharp),
-                                        SizedBox(width: 10),
-                                        Text('Remove'),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 6),
-
-                          // Meal
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 9,
-                              vertical: 5,
-                            ),
-
-                            decoration: BoxDecoration(
-                              color: Colors.deepPurple.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-
-                            child: Text(
-                              meal,
-                              style: const TextStyle(
-                                color: Colors.deepPurple,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          // Rating
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.star_rounded,
-                                color: Colors.amber,
-                                size: 19,
-                              ),
-
-                              const SizedBox(width: 4),
-
-                              Text(
-                                rating.toString(),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          // Time
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.access_time_outlined,
-                                size: 17,
-                                color: Colors.deepPurple,
-                              ),
-
-                              const SizedBox(width: 6),
-
-                              Text(time, style: const TextStyle(fontSize: 12)),
-                            ],
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          // Dishes
-                          Text(
-                            dishes,
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 12,
-                            ),
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Price
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.currency_rupee,
-                                size: 18,
-                                color: Colors.deepPurple,
-                              ),
-
-                              Text(
-                                '$price',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-
-                              const Text(
-                                ' / person',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-        );
-      },
-    ));
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildActivityCard({
@@ -1697,129 +1738,133 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
     required String location,
   }) {
     return GestureDetector(
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PlaceDetailScreen(
-          name: name,
-          image: image,
-          time: time,
-          price: price,
-          rating: rating,
-          description: description,
-          destination: widget.destination,
-          selectedDay: selectedDay,
-          itemType: DetailItemType.activity,
-          location: location,
-          duration: duration,
-        ),
-      ),
-    );
-  },
-  child: LayoutBuilder(
-    builder: (context, constraints) {
-        final bool isWide = constraints.maxWidth >= 650;
-
-        return Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade200),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PlaceDetailScreen(
+              name: name,
+              image: image,
+              time: time,
+              price: price,
+              rating: rating,
+              description: description,
+              destination: widget.destination,
+              selectedDay: selectedDay,
+              itemType: DetailItemType.activity,
+              location: location,
+              duration: duration,
+            ),
           ),
-          clipBehavior: Clip.antiAlias,
+        );
+      },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isWide = constraints.maxWidth >= 650;
 
-          child: isWide
-              ? SizedBox(
-                  height: 230,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // =========================
-                      // IMAGE
-                      // =========================
-                      Expanded(
-                        flex: 4,
-                        child: Stack(
-                          children: [
-                            SizedBox(
-                              width: double.infinity,
-                              height: double.infinity,
-                              child: Image.network(
-                                image,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey.shade200,
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.landscape_outlined,
-                                        size: 45,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            clipBehavior: Clip.antiAlias,
 
-                            // Price
-                            Positioned(
-                              left: 12,
-                              bottom: 12,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.65),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  price == 0 ? 'Free' : '₹$price',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // =========================
-                      // DETAILS
-                      // =========================
-                      Expanded(
-                        flex: 6,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+            child: isWide
+                ? SizedBox(
+                    height: 230,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // =========================
+                        // IMAGE
+                        // =========================
+                        Expanded(
+                          flex: 4,
+                          child: Stack(
                             children: [
-                              // Name + menu
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      name,
-                                      style: const TextStyle(
-                                        fontSize: 19,
-                                        fontWeight: FontWeight.bold,
+                              SizedBox(
+                                width: double.infinity,
+                                height: double.infinity,
+                                child: Image.network(
+                                  image,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey.shade200,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.landscape_outlined,
+                                          size: 45,
+                                          color: Colors.grey,
+                                        ),
                                       ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
+                                    );
+                                  },
+                                ),
+                              ),
+
+                              // Price
+                              Positioned(
+                                left: 12,
+                                bottom: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.65),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    price == 0 ? 'Free' : '₹$price',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
                                     ),
                                   ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
 
-                                  PopupMenuButton<String>(
-                                      enabled: regeneratingItemKey == null && !isRegeneratingDay,
-                                      icon: regeneratingItemKey == 'activity_$itemIndex'
+                        // =========================
+                        // DETAILS
+                        // =========================
+                        Expanded(
+                          flex: 6,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Name + menu
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        name,
+                                        style: const TextStyle(
+                                          fontSize: 19,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+
+                                    PopupMenuButton<String>(
+                                      enabled:
+                                          regeneratingItemKey == null &&
+                                          !isRegeneratingDay,
+                                      icon:
+                                          regeneratingItemKey ==
+                                              'activity_$itemIndex'
                                           ? const SizedBox(
                                               width: 20,
                                               height: 20,
@@ -1829,338 +1874,343 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
                                               ),
                                             )
                                           : null,
-                                    onSelected: (value) {
-                                      if (value == 'regenerate') {
-                                        _regenerateItem(
-                                          itemType: "activity",
-                                          itemIndex: itemIndex,
-                                        );
-                                      }
+                                      onSelected: (value) {
+                                        if (value == 'regenerate') {
+                                          _regenerateItem(
+                                            itemType: "activity",
+                                            itemIndex: itemIndex,
+                                          );
+                                        }
 
-                                      if (value == 'delete') {
-                                        _deleteItem(
-                                          itemType: "activity",
-                                          itemIndex: itemIndex,
-                                        );
-                                      }
-                                    },
-                                    itemBuilder: (context) => const [
-                                      PopupMenuItem(
-                                        value: 'regenerate',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.auto_awesome_outlined),
-                                            SizedBox(width: 10),
-                                            Text('Regenerate'),
-                                          ],
+                                        if (value == 'delete') {
+                                          _deleteItem(
+                                            itemType: "activity",
+                                            itemIndex: itemIndex,
+                                          );
+                                        }
+                                      },
+                                      itemBuilder: (context) => const [
+                                        PopupMenuItem(
+                                          value: 'regenerate',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.auto_awesome_outlined),
+                                              SizedBox(width: 10),
+                                              Text('Regenerate'),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.delete_outline_sharp),
-                                            SizedBox(width: 10),
-                                            Text('Remove'),
-                                          ],
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete_outline_sharp),
+                                              SizedBox(width: 10),
+                                              Text('Remove'),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 7),
-
-                              // Rating
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.star_rounded,
-                                    color: Colors.amber,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    rating.toString(),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
+                                      ],
                                     ),
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                ),
 
-                              const SizedBox(height: 12),
+                                const SizedBox(height: 7),
 
-                              // Time
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.access_time_rounded,
-                                    size: 18,
-                                    color: Colors.deepPurple,
-                                  ),
-                                  const SizedBox(width: 7),
-                                  Text(
-                                    time,
-                                    style: const TextStyle(
+                                // Rating
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.star_rounded,
+                                      color: Colors.amber,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      rating.toString(),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 12),
+
+                                // Time
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.access_time_rounded,
+                                      size: 18,
+                                      color: Colors.deepPurple,
+                                    ),
+                                    const SizedBox(width: 7),
+                                    Text(
+                                      time,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 8),
+
+                                // Duration
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.timelapse,
+                                      size: 18,
+                                      color: Colors.deepPurple,
+                                    ),
+                                    const SizedBox(width: 7),
+                                    Text(
+                                      duration,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 10),
+
+                                // Description
+                                Expanded(
+                                  child: Text(
+                                    description,
+                                    style: TextStyle(
+                                      color: Colors.grey.shade700,
                                       fontSize: 13,
-                                      fontWeight: FontWeight.w500,
+                                      height: 1.4,
                                     ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              // Duration
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.timelapse,
-                                    size: 18,
-                                    color: Colors.deepPurple,
-                                  ),
-                                  const SizedBox(width: 7),
-                                  Text(
-                                    duration,
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              // Description
-                              Expanded(
-                                child: Text(
-                                  description,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 13,
-                                    height: 1.4,
-                                  ),
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              // =====================================================
-              // MOBILE
-              // =====================================================
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Image
-                    Stack(
-                      children: [
-                        SizedBox(
-                          height: 190,
-                          width: double.infinity,
-                          child: Image.network(
-                            image,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey.shade200,
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.landscape_outlined,
-                                    size: 45,
-                                    color: Colors.grey,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        ),
-
-                        // Price
-                        Positioned(
-                          left: 12,
-                          bottom: 12,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.65),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              price == 0 ? 'Free' : '₹$price',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
+                              ],
                             ),
                           ),
                         ),
                       ],
                     ),
-
-                    // Details
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  )
+                // =====================================================
+                // MOBILE
+                // =====================================================
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Image
+                      Stack(
                         children: [
-                          // Name + menu
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  name,
-                                  style: const TextStyle(
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-
-                              PopupMenuButton<String>(
-                                      enabled: regeneratingItemKey == null && !isRegeneratingDay,
-                                      icon: regeneratingItemKey == 'activity_$itemIndex'
-                                          ? const SizedBox(
-                                              width: 20,
-                                              height: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.deepPurple,
-                                              ),
-                                            )
-                                          : null,
-                                onSelected: (value) {
-                                  if (value == 'regenerate') {
-                                    _regenerateItem(
-                                      itemType: "activity",
-                                      itemIndex: itemIndex,
-                                    );
-                                  }
-
-                                  if (value == 'delete') {
-                                    _deleteItem(
-                                      itemType: "activity",
-                                      itemIndex: itemIndex,
-                                    );
-                                  }
-                                },
-                                itemBuilder: (context) => const [
-                                  PopupMenuItem(
-                                    value: 'regenerate',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.auto_awesome_outlined),
-                                        SizedBox(width: 10),
-                                        Text('Regenerate'),
-                                      ],
+                          SizedBox(
+                            height: 190,
+                            width: double.infinity,
+                            child: Image.network(
+                              image,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey.shade200,
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.landscape_outlined,
+                                      size: 45,
+                                      color: Colors.grey,
                                     ),
                                   ),
-                                  PopupMenuItem(
-                                    value: 'delete',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.delete_outline_sharp),
-                                        SizedBox(width: 10),
-                                        Text('Remove'),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 7),
-
-                          // Rating
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.star_rounded,
-                                color: Colors.amber,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                rating.toString(),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Time
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.access_time_rounded,
-                                size: 18,
-                                color: Colors.deepPurple,
-                              ),
-                              const SizedBox(width: 7),
-                              Text(
-                                time,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          // Duration
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.timelapse,
-                                size: 18,
-                                color: Colors.deepPurple,
-                              ),
-                              const SizedBox(width: 7),
-                              Text(
-                                duration,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          // Description
-                          Text(
-                            description,
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 13,
-                              height: 1.4,
+                                );
+                              },
                             ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
+                          ),
+
+                          // Price
+                          Positioned(
+                            left: 12,
+                            bottom: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.65),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                price == 0 ? 'Free' : '₹$price',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-        );
-      },
-    ));
+
+                      // Details
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Name + menu
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    name,
+                                    style: const TextStyle(
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+
+                                PopupMenuButton<String>(
+                                  enabled:
+                                      regeneratingItemKey == null &&
+                                      !isRegeneratingDay,
+                                  icon:
+                                      regeneratingItemKey ==
+                                          'activity_$itemIndex'
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.deepPurple,
+                                          ),
+                                        )
+                                      : null,
+                                  onSelected: (value) {
+                                    if (value == 'regenerate') {
+                                      _regenerateItem(
+                                        itemType: "activity",
+                                        itemIndex: itemIndex,
+                                      );
+                                    }
+
+                                    if (value == 'delete') {
+                                      _deleteItem(
+                                        itemType: "activity",
+                                        itemIndex: itemIndex,
+                                      );
+                                    }
+                                  },
+                                  itemBuilder: (context) => const [
+                                    PopupMenuItem(
+                                      value: 'regenerate',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.auto_awesome_outlined),
+                                          SizedBox(width: 10),
+                                          Text('Regenerate'),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete_outline_sharp),
+                                          SizedBox(width: 10),
+                                          Text('Remove'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 7),
+
+                            // Rating
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.star_rounded,
+                                  color: Colors.amber,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  rating.toString(),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            // Time
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.access_time_rounded,
+                                  size: 18,
+                                  color: Colors.deepPurple,
+                                ),
+                                const SizedBox(width: 7),
+                                Text(
+                                  time,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 8),
+
+                            // Duration
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.timelapse,
+                                  size: 18,
+                                  color: Colors.deepPurple,
+                                ),
+                                const SizedBox(width: 7),
+                                Text(
+                                  duration,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            // Description
+                            Text(
+                              description,
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildDayCostCard() {
@@ -2234,9 +2284,7 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
     };
   }
 
-  double _calculateItineraryCost(
-    Map<String, dynamic> data,
-  ) {
+  double _calculateItineraryCost(Map<String, dynamic> data) {
     double total = 0;
 
     for (final day in data.values) {
@@ -2297,7 +2345,8 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       return;
     }
 
-    final currentDay = itineraryData[selectedDay];
+    final dayNumber = selectedDay;
+    final currentDay = itineraryData[dayNumber];
 
     if (currentDay == null) {
       return;
@@ -2310,13 +2359,10 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
     try {
       final response = await ApiService.regenerateDay(
         destination: widget.destination,
-        budget: double.parse(
-          widget.budget.replaceAll(',', ''),
-        ),
+        budget: double.parse(widget.budget.replaceAll(',', '')),
         interests: widget.interests,
-        foodPreference:
-            widget.selectedFoodPreference ?? 'veg',
-        dayNumber: selectedDay,
+        foodPreference: widget.selectedFoodPreference ?? 'veg',
+        dayNumber: dayNumber,
         currentDay: Map<String, dynamic>.from(currentDay),
         itineraryData: _fullItineraryForRequest(),
       );
@@ -2324,14 +2370,11 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       final regeneratedDay = response['day'];
 
       if (regeneratedDay is! Map) {
-        throw Exception(
-          'Invalid regenerated day received',
-        );
+        throw Exception('Invalid regenerated day received');
       }
 
       setState(() {
-        itineraryData[selectedDay] =
-            Map<String, dynamic>.from(regeneratedDay);
+        itineraryData[dayNumber] = Map<String, dynamic>.from(regeneratedDay);
       });
 
       await _saveCurrentItinerary();
@@ -2339,11 +2382,7 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Day $selectedDay regenerated successfully.',
-          ),
-        ),
+        SnackBar(content: Text('Day $dayNumber regenerated successfully.')),
       );
     } catch (e) {
       debugPrint('Regenerate day error: $e');
@@ -2351,11 +2390,7 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Failed to regenerate the day.',
-          ),
-        ),
+        const SnackBar(content: Text('Failed to regenerate the day.')),
       );
     } finally {
       if (!mounted) return;
@@ -2374,7 +2409,8 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       return;
     }
 
-    final currentDay = itineraryData[selectedDay];
+    final dayNumber = selectedDay;
+    final currentDay = itineraryData[dayNumber];
 
     if (currentDay == null) {
       return;
@@ -2389,13 +2425,10 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
     try {
       final response = await ApiService.regenerateItem(
         destination: widget.destination,
-        budget: double.parse(
-          widget.budget.replaceAll(',', ''),
-        ),
+        budget: double.parse(widget.budget.replaceAll(',', '')),
         interests: widget.interests,
-        foodPreference:
-            widget.selectedFoodPreference ?? 'veg',
-        dayNumber: selectedDay,
+        foodPreference: widget.selectedFoodPreference ?? 'veg',
+        dayNumber: dayNumber,
         itemType: itemType,
         itemIndex: itemIndex,
         currentDay: Map<String, dynamic>.from(currentDay),
@@ -2405,13 +2438,10 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       final regeneratedItem = response['item'];
 
       if (regeneratedItem is! Map) {
-        throw Exception(
-          'Invalid regenerated item received',
-        );
+        throw Exception('Invalid regenerated item received');
       }
 
-      final updatedDay =
-          Map<String, dynamic>.from(currentDay);
+      final updatedDay = Map<String, dynamic>.from(currentDay);
 
       final String listKey;
 
@@ -2426,23 +2456,17 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       final items = updatedDay[listKey];
 
       if (items is! List) {
-        throw Exception(
-          'Invalid $listKey data',
-        );
+        throw Exception('Invalid $listKey data');
       }
 
-      if (itemIndex < 0 ||
-          itemIndex >= items.length) {
-        throw Exception(
-          'Invalid item index',
-        );
+      if (itemIndex < 0 || itemIndex >= items.length) {
+        throw Exception('Invalid item index');
       }
 
-      items[itemIndex] =
-          Map<String, dynamic>.from(regeneratedItem);
+      items[itemIndex] = Map<String, dynamic>.from(regeneratedItem);
 
       setState(() {
-        itineraryData[selectedDay] = updatedDay;
+        itineraryData[dayNumber] = updatedDay;
       });
 
       await _saveCurrentItinerary();
@@ -2450,11 +2474,7 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Item regenerated successfully.',
-          ),
-        ),
+        const SnackBar(content: Text('Item regenerated successfully.')),
       );
     } catch (e) {
       debugPrint('Regenerate item error: $e');
@@ -2462,11 +2482,7 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Failed to regenerate item.',
-          ),
-        ),
+        const SnackBar(content: Text('Failed to regenerate item.')),
       );
     } finally {
       if (!mounted) return;
@@ -2477,6 +2493,23 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
     }
   }
 
+  void _regenerateEntireTrip() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AIGeneratingScreen(
+          localTripId: widget.localTripId,
+          destination: widget.destination,
+          budgetText: widget.budget,
+          budget: double.tryParse(widget.budget.replaceAll(',', '')) ?? 0,
+          numberOfDays: widget.numberOfDays,
+          interests: widget.interests,
+          foodPreference: widget.selectedFoodPreference ?? 'veg',
+        ),
+      ),
+    );
+  }
+
   Future<void> _deleteItem({
     required String itemType,
     required int itemIndex,
@@ -2485,7 +2518,8 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       return;
     }
 
-    final currentDay = itineraryData[selectedDay];
+    final dayNumber = selectedDay;
+    final currentDay = itineraryData[dayNumber];
 
     if (currentDay == null) {
       return;
@@ -2501,8 +2535,7 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       listKey = 'activities';
     }
 
-    final updatedDay =
-        Map<String, dynamic>.from(currentDay);
+    final updatedDay = Map<String, dynamic>.from(currentDay);
 
     final items = updatedDay[listKey];
 
@@ -2510,15 +2543,14 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       return;
     }
 
-    if (itemIndex < 0 ||
-        itemIndex >= items.length) {
+    if (itemIndex < 0 || itemIndex >= items.length) {
       return;
     }
 
     items.removeAt(itemIndex);
 
     setState(() {
-      itineraryData[selectedDay] = updatedDay;
+      itineraryData[dayNumber] = updatedDay;
     });
 
     try {
@@ -2527,11 +2559,7 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Item removed successfully.',
-          ),
-        ),
+        const SnackBar(content: Text('Item removed successfully.')),
       );
     } catch (e) {
       debugPrint('Delete item error: $e');
@@ -2539,13 +2567,8 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Failed to save the change.',
-          ),
-        ),
+        const SnackBar(content: Text('Failed to save the change.')),
       );
     }
   }
-
 }

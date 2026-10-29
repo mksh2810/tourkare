@@ -47,7 +47,7 @@ class _AIGeneratingScreenState extends State<AIGeneratingScreen>
     'Checking travel times... 🚗',
     'Adding some fun to the trip... 🎉',
     'Making sure you don\'t wake up at 6 AM... 😴',
-    'Asking Google Maps for emotional support... 🗺️',
+    'Packing the virtual bags... 🧳',
     'Packing the virtual bags... 🧳',
     'Almost there... probably. 🤞',
   ];
@@ -68,15 +68,12 @@ class _AIGeneratingScreenState extends State<AIGeneratingScreen>
       upperBound: 1.05,
     )..repeat(reverse: true);
 
-    _messageTimer = Timer.periodic(
-      const Duration(milliseconds: 2600),
-      (_) {
-        if (!mounted || !_isGenerating) return;
-        setState(() {
-          _messageIndex = (_messageIndex + 1) % _messages.length;
-        });
-      },
-    );
+    _messageTimer = Timer.periodic(const Duration(milliseconds: 2600), (_) {
+      if (!mounted || !_isGenerating) return;
+      setState(() {
+        _messageIndex = (_messageIndex + 1) % _messages.length;
+      });
+    });
 
     _generateItinerary();
   }
@@ -138,8 +135,7 @@ class _AIGeneratingScreenState extends State<AIGeneratingScreen>
 
       setState(() {
         _isGenerating = false;
-        _errorMessage =
-            'We couldn\'t generate your itinerary right now.\nPlease try again.';
+        _errorMessage = 'We couldn\'t generate your itinerary right now.\nPlease try again.';
       });
     }
   }
@@ -192,9 +188,7 @@ class _AIGeneratingScreenState extends State<AIGeneratingScreen>
                               ? _messages[_messageIndex]
                               : (_errorMessage ?? ''),
                           key: ValueKey(
-                            _isGenerating
-                                ? _messageIndex
-                                : _errorMessage,
+                            _isGenerating ? _messageIndex : _errorMessage,
                           ),
                           textAlign: TextAlign.center,
                           style: TextStyle(
@@ -328,11 +322,7 @@ class _GradientFlowPainter extends CustomPainter {
       ..shader = const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          Color(0xFF24103D),
-          Color(0xFF4B1D73),
-          Color(0xFF1B4965),
-        ],
+        colors: [Color(0xFF24103D), Color(0xFF4B1D73), Color(0xFF1B4965)],
       ).createShader(rect);
 
     canvas.drawRect(rect, backgroundPaint);
@@ -385,9 +375,7 @@ class _GradientFlowPainter extends CustomPainter {
           color.withValues(alpha: 0.18),
           color.withValues(alpha: 0),
         ],
-      ).createShader(
-        Rect.fromCircle(center: center, radius: radius),
-      )
+      ).createShader(Rect.fromCircle(center: center, radius: radius))
       ..blendMode = BlendMode.screen;
 
     canvas.drawCircle(center, radius, paint);

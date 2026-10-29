@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 enum DetailItemType { place, food, activity }
 
@@ -58,36 +57,6 @@ class PlaceDetailScreen extends StatelessWidget {
         return Icons.restaurant_outlined;
       case DetailItemType.activity:
         return Icons.local_activity_outlined;
-    }
-  }
-
-  Future<void> _openGoogleMaps(BuildContext context) async {
-    final searchQuery = '$name, $location';
-
-    final uri = Uri.parse(
-      'https://www.google.com/maps/search/?api=1'
-      '&query=${Uri.encodeComponent(searchQuery)}',
-    );
-
-    try {
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
-
-      if (!launched && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open Google Maps.')),
-        );
-      }
-    } catch (e) {
-      debugPrint('Google Maps error: $e');
-
-      if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open Google Maps.')),
-      );
     }
   }
 
@@ -555,43 +524,6 @@ class PlaceDetailScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Map preview
-                          Container(
-                            height: 180,
-                            width: double.infinity,
-                            color: const Color(0xFFE9E7EF),
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Icon(
-                                  Icons.map_outlined,
-                                  size: 70,
-                                  color: Colors.deepPurple.shade200,
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.deepPurple,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.15,
-                                        ),
-                                        blurRadius: 8,
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.location_on,
-                                    color: Colors.white,
-                                    size: 25,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
                           Padding(
                             padding: const EdgeInsets.all(16),
                             child: Row(
@@ -640,36 +572,6 @@ class PlaceDetailScreen extends StatelessWidget {
                                   ),
                                 ),
                               ],
-                            ),
-                          ),
-
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 46,
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  _openGoogleMaps(context);
-                                },
-                                icon: const Icon(Icons.map_outlined, size: 18),
-                                label: const Text(
-                                  'VIEW ON MAP',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.deepPurple,
-                                  side: const BorderSide(
-                                    color: Colors.deepPurple,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
                             ),
                           ),
                         ],

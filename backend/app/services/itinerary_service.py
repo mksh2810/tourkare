@@ -1,9 +1,90 @@
+import re
+
 from fastapi import HTTPException
 
 from app.schemas.itinerary import DayItinerary, ItineraryResponse
 from app.services.ai_service import generate_ai_response
 from app.services.prompt_service import build_itinerary_prompt
-from app.services.unsplash_service import search_image
+from app.services.unsplash_service import search_images
+
+
+def normalize_ai_text(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            key: normalize_ai_text(item)
+            for key, item in value.items()
+        }
+
+    if isinstance(value, list):
+        return [normalize_ai_text(item) for item in value]
+
+    if not isinstance(value, str):
+        return value
+
+    return re.sub(r"(?<=[a-z])(?=[A-Z])", " ", value).strip()
+
+
+def normalize_ai_itinerary(itinerary_data: dict) -> dict:
+    """Normalize common field aliases returned by free routed models."""
+    normalized = {}
+    aliases_used = False
+
+    for day_key, raw_day in itinerary_data.items():
+        if not isinstance(raw_day, dict):
+            normalized[day_key] = raw_day
+            continue
+
+        day = dict(raw_day)
+        if "title" in day:
+            day["title"] = normalize_ai_text(day["title"])
+        places = []
+        for raw_place in day.get("places", []):
+            item = {
+                key: normalize_ai_text(value)
+                for key, value in raw_place.items()
+            }
+            if "description" not in item and "details" in item:
+                item["description"] = item["details"]
+                aliases_used = True
+            places.append(item)
+
+        food_items = []
+        for raw_food in day.get("food", []):
+            item = {
+                key: normalize_ai_text(value)
+                for key, value in raw_food.items()
+            }
+            if "restaurant" not in item and "name" in item:
+                item["restaurant"] = item["name"]
+                aliases_used = True
+            if "meal" not in item:
+                item["meal"] = item.get("category", "meal")
+                aliases_used = True
+            if "dishes" not in item:
+                item["dishes"] = item.get("description", "")
+                aliases_used = True
+            food_items.append(item)
+
+        activities = []
+        for raw_activity in day.get("activities", []):
+            item = {
+                key: normalize_ai_text(value)
+                for key, value in raw_activity.items()
+            }
+            if "duration" not in item:
+                item["duration"] = "1 hour"
+                aliases_used = True
+            activities.append(item)
+
+        day["places"] = places
+        day["food"] = food_items
+        day["activities"] = activities
+        normalized[day_key] = day
+
+    if aliases_used:
+        print("Normalized common aliases in AI itinerary response")
+
+    return normalized
 
 
 async def add_images(
@@ -15,6 +96,8 @@ async def add_images(
 
     If an image cannot be found, the item's image remains empty.
     """
+
+    image_requests: list[tuple[str, str, dict]] = []
 
     for day_data in itinerary_data.values():
         if not isinstance(day_data, dict):
@@ -33,10 +116,7 @@ async def add_images(
                 name = place.get("name", "").strip()
 
                 if name:
-                    place["image"] = await search_image(
-                        item_name=name,
-                        destination=destination,
-                    )
+                    image_requests.append((name, destination, place))
 
         # -------------------------
         # Food
@@ -51,10 +131,7 @@ async def add_images(
                 restaurant = item.get("restaurant", "").strip()
 
                 if restaurant:
-                    item["image"] = await search_image(
-                        item_name=restaurant,
-                        destination=destination,
-                    )
+                    image_requests.append((restaurant, destination, item))
 
         # -------------------------
         # Activities
@@ -69,10 +146,13 @@ async def add_images(
                 name = activity.get("name", "").strip()
 
                 if name:
-                    activity["image"] = await search_image(
-                        item_name=name,
-                        destination=destination,
-                    )
+                    image_requests.append((name, destination, activity))
+
+    image_urls = await search_images(
+        [(name, item_destination) for name, item_destination, _ in image_requests]
+    )
+    for image_url, (_, _, item) in zip(image_urls, image_requests):
+        item["image"] = image_url
 
     return itinerary_data
 
@@ -105,6 +185,8 @@ async def generate_itinerary(trip):
             status_code=502,
             detail="AI response is missing valid itineraryData",
         )
+
+    itinerary_data = normalize_ai_itinerary(itinerary_data)
 
     # -------------------------
     # Check requested days
@@ -156,9 +238,19 @@ async def generate_itinerary(trip):
                 estimated_cost += activity.price
 
     except Exception as exc:
+        print(
+            "AI itinerary schema validation failed:",
+            str(exc),
+        )
         raise HTTPException(
             status_code=502,
-            detail="AI response does not match the expected itinerary schema",
+            detail={
+                "message": (
+                    "AI response does not match the expected "
+                    "itinerary schema"
+                ),
+                "validation_error": str(exc),
+            },
         ) from exc
 
     # -------------------------
@@ -170,6 +262,10 @@ async def generate_itinerary(trip):
     # Check budget
     # -------------------------
     if estimated_cost > trip.budget:
+        print(
+            "Generated itinerary exceeded budget:",
+            f"estimated={estimated_cost}, budget={trip.budget}",
+        )
         raise HTTPException(
             status_code=422,
             detail={

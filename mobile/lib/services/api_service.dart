@@ -5,7 +5,22 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'https://tourkare-backend.onrender.com';
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:8000';
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        // Android Emulator maps the host machine to 10.0.2.2.
+        return 'http://10.0.2.2:8000';
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return 'http://127.0.0.1:8000';
+      default:
+        return 'http://localhost:8000';
+    }
+  }
 
   static Future<String?> getHeroImage() async {
     try {

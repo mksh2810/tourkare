@@ -1,9 +1,13 @@
+import asyncio
+
 import httpx
 
 from app.core.config import settings
 
 
 UNSPLASH_SEARCH_URL = "https://api.unsplash.com/search/photos"
+_UNSPLASH_CONCURRENCY = 4
+_unsplash_semaphore = asyncio.Semaphore(_UNSPLASH_CONCURRENCY)
 
 
 async def search_image(
@@ -34,24 +38,24 @@ async def search_image(
         "orientation": "landscape",
     }
 
-    print()
-    print("🔎 Unsplash search")
-    print("   Item:", item_name)
-    print("   Query:", query)
-
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(
-                UNSPLASH_SEARCH_URL,
-                headers=headers,
-                params=params,
-            )
-
-        print("   Status:", response.status_code)
+        async with _unsplash_semaphore:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(
+                    UNSPLASH_SEARCH_URL,
+                    headers=headers,
+                    params=params,
+                )
 
         if response.status_code != 200:
-            print("❌ Unsplash request failed")
-            print("   Response:", response.text)
+            if response.status_code == 403:
+                print("Unsplash rate limit reached; leaving image empty:", item_name)
+            else:
+                print(
+                    "Unsplash request failed:",
+                    response.status_code,
+                    item_name,
+                )
             return ""
 
         data = response.json()
@@ -70,11 +74,21 @@ async def search_image(
             print("⚠️ Image result found, but URL is missing")
             return ""
 
-        print("✅ Image found")
-        print("   URL:", image_url)
-
         return image_url
 
-    except Exception as exc:
-        print("❌ Unsplash image search error:", exc)
+    except (httpx.HTTPError, ValueError) as exc:
+        print("Unsplash image search failed:", item_name, exc)
         return ""
+
+
+async def search_images(
+    items: list[tuple[str, str]],
+) -> list[str]:
+    """Fetch images with bounded concurrency to avoid provider rate limits."""
+    if not items:
+        return []
+
+    return await asyncio.gather(
+        *(search_image(item_name=name, destination=destination)
+          for name, destination in items)
+    )

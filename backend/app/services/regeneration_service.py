@@ -9,11 +9,12 @@ from app.schemas.itinerary import (
     RegenerateItemRequest,
 )
 from app.services.ai_service import generate_ai_response
+from app.services.itinerary_service import normalize_ai_text
 from app.services.prompt_service import (
     build_regenerate_day_prompt,
     build_regenerate_item_prompt,
 )
-from app.services.unsplash_service import search_image
+from app.services.unsplash_service import search_images
 
 
 def calculate_itinerary_cost(
@@ -91,6 +92,7 @@ async def add_day_images(
     day_data: dict,
     destination: str,
 ) -> dict:
+    image_requests: list[tuple[str, str, dict]] = []
     places = day_data.get("places", [])
 
     if isinstance(places, list):
@@ -101,10 +103,7 @@ async def add_day_images(
             name = place.get("name", "").strip()
 
             if name:
-                place["image"] = await search_image(
-                    item_name=name,
-                    destination=destination,
-                )
+                image_requests.append((name, destination, place))
 
     food = day_data.get("food", [])
 
@@ -116,10 +115,7 @@ async def add_day_images(
             restaurant = item.get("restaurant", "").strip()
 
             if restaurant:
-                item["image"] = await search_image(
-                    item_name=restaurant,
-                    destination=destination,
-                )
+                image_requests.append((restaurant, destination, item))
 
     activities = day_data.get("activities", [])
 
@@ -131,10 +127,13 @@ async def add_day_images(
             name = activity.get("name", "").strip()
 
             if name:
-                activity["image"] = await search_image(
-                    item_name=name,
-                    destination=destination,
-                )
+                image_requests.append((name, destination, activity))
+
+    image_urls = await search_images(
+        [(name, item_destination) for name, item_destination, _ in image_requests]
+    )
+    for image_url, (_, _, item) in zip(image_urls, image_requests):
+        item["image"] = image_url
 
     return day_data
 
@@ -227,6 +226,12 @@ async def regenerate_day(
             detail="AI returned an invalid regeneration response",
         )
 
+    if isinstance(ai_response, dict):
+        ai_response = {
+            key: normalize_ai_text(value)
+            for key, value in ai_response.items()
+        }
+
     try:
         day = DayItinerary.model_validate(ai_response)
     except Exception as exc:
@@ -300,6 +305,12 @@ async def regenerate_item(
             status_code=502,
             detail="AI returned an invalid regeneration response",
         )
+
+    if isinstance(ai_response, dict):
+        ai_response = {
+            key: normalize_ai_text(value)
+            for key, value in ai_response.items()
+        }
 
     try:
         if request.item_type == "place":
@@ -393,10 +404,9 @@ async def regenerate_item(
         search_name = item_data.get("name", "")
 
     if search_name:
-        item_data["image"] = await search_image(
-            item_name=search_name,
-            destination=request.destination,
-        )
+        item_data["image"] = (
+            await search_images([(search_name, request.destination)])
+        )[0]
 
     try:
         if request.item_type == "place":

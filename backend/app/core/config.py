@@ -12,8 +12,8 @@ load_dotenv()
 class Settings(BaseSettings):
     
     ai_api_key: str = ""
-    ai_base_url: str = "https://openrouter.ai/api/v1"
-    ai_model: str = "openrouter/free"
+    ai_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    ai_model: str = "gemini-3.5-flash-lite"
 
     firebase_service_account_json: str = ""
 
