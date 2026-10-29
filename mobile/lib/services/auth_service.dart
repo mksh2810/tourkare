@@ -177,16 +177,7 @@ class AuthService extends ChangeNotifier {
     }
 
     try {
-      final actionUrl = Uri.base.origin;
-      final actionCodeSettings = ActionCodeSettings(
-        url: actionUrl,
-        handleCodeInApp: true,
-      );
-
-      await _auth.sendPasswordResetEmail(
-        email: trimmedEmail,
-        actionCodeSettings: actionCodeSettings,
-      );
+      await _auth.sendPasswordResetEmail(email: trimmedEmail);
 
       return const AuthResult(
         success: true,
@@ -198,40 +189,6 @@ class AuthService extends ChangeNotifier {
       return const AuthResult(
         success: false,
         message: 'Unable to send password reset email.',
-      );
-    }
-  }
-
-  Future<AuthResult> verifyPasswordResetCode({required String code}) async {
-    try {
-      final email = await _auth.verifyPasswordResetCode(code);
-      return AuthResult(success: true, message: email);
-    } on FirebaseAuthException catch (e) {
-      return AuthResult(success: false, message: _getAuthErrorMessage(e.code));
-    } catch (e) {
-      return const AuthResult(
-        success: false,
-        message: 'This password reset link is invalid or expired.',
-      );
-    }
-  }
-
-  Future<AuthResult> confirmPasswordReset({
-    required String code,
-    required String newPassword,
-  }) async {
-    try {
-      await _auth.confirmPasswordReset(code: code, newPassword: newPassword);
-      return const AuthResult(
-        success: true,
-        message: 'Password updated successfully.',
-      );
-    } on FirebaseAuthException catch (e) {
-      return AuthResult(success: false, message: _getAuthErrorMessage(e.code));
-    } catch (e) {
-      return const AuthResult(
-        success: false,
-        message: 'Unable to update your password.',
       );
     }
   }

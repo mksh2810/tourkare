@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tourkare/firebase_options.dart';
 import 'package:tourkare/screens/auth/auth_gate.dart';
-import 'package:tourkare/screens/auth/reset_password.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
@@ -14,18 +13,6 @@ Future<void> main() async {
   databaseFactory = databaseFactoryFfiWeb;
 
   runApp(const TourKareApp());
-}
-
-Widget _initialScreen() {
-  final uri = Uri.base;
-  final mode = uri.queryParameters['mode'];
-  final code = uri.queryParameters['oobCode'];
-
-  if (mode == 'resetPassword' && code != null && code.isNotEmpty) {
-    return ResetPasswordScreen(code: code);
-  }
-
-  return const AuthGate();
 }
 
 class TourKareApp extends StatelessWidget {
@@ -44,7 +31,7 @@ class TourKareApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: _initialScreen(),
+      home: const AuthGate(),
     );
   }
 }
