@@ -179,7 +179,7 @@ class AuthService extends ChangeNotifier {
     try {
       final actionUrl = Uri.base.origin;
       final actionCodeSettings = ActionCodeSettings(
-        url: '$actionUrl/?mode=resetPassword',
+        url: actionUrl,
         handleCodeInApp: true,
       );
 
