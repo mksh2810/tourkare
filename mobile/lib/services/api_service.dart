@@ -5,9 +5,15 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
+  static const String _productionBaseUrl =
+      'https://tourkare-backend.onrender.com';
+
   static String get baseUrl {
     if (kIsWeb) {
-      return 'http://localhost:8000';
+      final host = Uri.base.host;
+      return host == 'localhost' || host == '127.0.0.1'
+          ? 'http://localhost:8000'
+          : _productionBaseUrl;
     }
 
     switch (defaultTargetPlatform) {
